@@ -27,7 +27,12 @@ try {
     assert.ok(markup.includes("<h1"));
     assert.ok(!markup.includes("Loading trading data"));
     assert.ok(!markup.includes("NaN"));
-    if (name === "tickers") for (const ticker of datasets.tickers) assert.ok(markup.includes(`href="/congress/ticker/${ticker.ticker}"`), `Missing crawlable ticker link: ${ticker.ticker}`);
+    // The tickers table links the tickers it shows; every ticker page is listed in sitemap.xml (checked after the build
+    // in dataShell.test.mjs) rather than in a block of links under the table.
+    if (name === "tickers") {
+      assert.ok(markup.includes('href="/congress/ticker/'), "tickers table links its tickers");
+      assert.ok(!markup.includes("Browse all ticker symbols"), "no browse link block under the table");
+    }
     if (name !== "about") assert.ok(markup.includes("<table"), `${name} includes actual data tables`);
   }
   const filerData = JSON.parse(fs.readFileSync(new URL("../public/data/filer/oge_donald_trump.json", import.meta.url), "utf8"));

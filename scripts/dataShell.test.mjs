@@ -27,3 +27,11 @@ for (const page of pages) {
   }
 }
 console.log(`data shell: ${pages.length} pages point at versioned data files`);
+
+// Every ticker page is discoverable from the sitemap, now that the tickers page no longer lists them all in a block
+// of links under its table.
+const sitemap = fs.readFileSync(path.join(DIST, "sitemap.xml"), "utf8");
+const allTickers = JSON.parse(fs.readFileSync(path.join(DIST, "data", "tickers.json"), "utf8"));
+const missing = allTickers.filter((t) => !sitemap.includes(`/congress/ticker/${t.ticker}<`) && !sitemap.includes(`/congress/ticker/${t.ticker}/<`));
+assert.equal(missing.length, 0, `sitemap lists every ticker page (missing: ${missing.slice(0, 5).map((t) => t.ticker).join(", ")})`);
+console.log(`sitemap: all ${allTickers.length} ticker pages listed`);
