@@ -1,6 +1,7 @@
 // Render the actual React pages and their initial data, plus route metadata and sitemap.
 
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
@@ -201,8 +202,18 @@ function renderRoute(template, route) {
   return html;
 }
 
-function injectPage(html, initialPage, renderPage) {
-  const payload = JSON.stringify(initialPage).replace(/</g, "\\u003c");
+// Pages render in full at build time, but the data behind them no longer rides inside the HTML: the seed names each
+// published data file by URL, versioned with a hash of its bytes, and the client fetches those files and hydrates
+// with the same data (src/main.jsx). The home and trades pages used to embed 5 MB of JSON each, and one filer page
+// 11 MB, although the app fetches the same files after load anyway.
+const fileVersions = new Map();
+function fileRef(rel) {
+  if (!fileVersions.has(rel)) fileVersions.set(rel, createHash("sha256").update(fs.readFileSync(path.join(DATA, rel))).digest("hex").slice(0, 12));
+  return { $file: `${PREFIX}/data/${rel}?v=${fileVersions.get(rel)}` };
+}
+
+function injectPage(html, initialPage, renderPage, seed = initialPage) {
+  const payload = JSON.stringify(seed).replace(/</g, "\\u003c");
   return html.replace('<div id="root"></div>', () => `<div id="root">${renderPage(initialPage)}</div><script id="page-data" type="application/json">${payload}</script>`);
 }
 
@@ -230,9 +241,13 @@ async function buildRenderer() {
 const template = fs.readFileSync(path.join(DIST, "index.html"), "utf8");
 const { renderPage } = await buildRenderer();
 const asOf = Date.now();
+const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], about: ["stats"] };
 function routeDatasets(name) {
-  const names = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], about: ["stats"] }[name];
-  return Object.fromEntries(names.map((name) => [name, loadJson(`${name}.json`)]));
+  return Object.fromEntries(ROUTE_DATASETS[name].map((name) => [name, loadJson(`${name}.json`)]));
+}
+// The same datasets as file references, for the seed.
+function routeDatasetRefs(name) {
+  return Object.fromEntries(ROUTE_DATASETS[name].map((name) => [name, fileRef(`${name}.json`)]));
 }
 const filersById = new Map(loadJson("filers.json").map((f) => [f.id, f]));
 const routes = buildRoutes();
@@ -243,22 +258,32 @@ for (const r of routes) {
   fs.mkdirSync(dir, { recursive: true });
   let html = renderRoute(template, r);
   let initialPage;
+  let seed;
   if (r.path.startsWith("/ticker/") || r.path.startsWith("/filer/")) {
     if (r.path.startsWith("/filer/")) {
       const id = r.path.slice("/filer/".length);
       const filerData = loadJson(`filer/${id}.json`);
-      initialPage = { route: { name: "filer", id, query: {} }, filerData, filers: [filerData.filer], returns: loadJson("returns.json"), asOf };
+      const route = { name: "filer", id, query: {} };
+      initialPage = { route, filerData, filers: [filerData.filer], returns: loadJson("returns.json"), asOf };
+      seed = { route, filerData: fileRef(`filer/${id}.json`), filers: [filerData.filer], returns: fileRef("returns.json"), asOf };
     } else {
       const symbol = r.path.slice("/ticker/".length);
-      const tickerData = loadJson(`ticker/${encodeURIComponent(symbol)}.json`);
+      // The same file path the ticker page fetches client-side.
+      const rel = `ticker/${encodeURIComponent(symbol)}.json`;
+      const tickerData = loadJson(rel);
       const filerIds = [...new Set(tickerData.trades.map((t) => t.filer_id))];
-      initialPage = { route: { name: "ticker", symbol, query: {} }, tickerData, filers: filerIds.map((id) => filersById.get(id)).filter(Boolean) };
+      const route = { name: "ticker", symbol, query: {} };
+      const filers = filerIds.map((id) => filersById.get(id)).filter(Boolean);
+      initialPage = { route, tickerData, filers, asOf };
+      seed = { route, tickerData: fileRef(rel), filers, asOf };
     }
   } else {
     const name = r.path.slice(1);
-    initialPage = { route: { name, query: {} }, datasets: routeDatasets(name) };
+    const route = { name, query: {} };
+    initialPage = { route, datasets: routeDatasets(name), asOf };
+    seed = { route, datasets: routeDatasetRefs(name), asOf };
   }
-  html = injectPage(html, { ...initialPage, asOf }, renderPage);
+  html = injectPage(html, initialPage, renderPage, seed);
   fs.writeFileSync(path.join(dir, "index.html"), html);
   written++;
 }
@@ -280,7 +305,7 @@ const homeSchemas = [
   },
   { "@context": "https://schema.org", "@type": "WebSite", name: "Congress Trading Monitor", url: BASE },
 ];
-const homeHtml = injectPage(template.replace("</head>", `${homeSchemas.map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("")}</head>`), { route: { name: "overview", query: {} }, datasets: routeDatasets("overview"), asOf }, renderPage);
+const homeHtml = injectPage(template.replace("</head>", `${homeSchemas.map((s) => `<script type="application/ld+json">${JSON.stringify(s)}</script>`).join("")}</head>`), { route: { name: "overview", query: {} }, datasets: routeDatasets("overview"), asOf }, renderPage, { route: { name: "overview", query: {} }, datasets: routeDatasetRefs("overview"), asOf });
 fs.writeFileSync(path.join(DIST, "index.html"), homeHtml);
 
 const today = new Date().toISOString().slice(0, 10);
