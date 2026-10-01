@@ -241,7 +241,7 @@ async function buildRenderer() {
 const template = fs.readFileSync(path.join(DIST, "index.html"), "utf8");
 const { renderPage } = await buildRenderer();
 const asOf = Date.now();
-const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], about: ["stats"] };
+const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices", "flows"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], about: ["stats"] };
 function routeDatasets(name) {
   return Object.fromEntries(ROUTE_DATASETS[name].map((name) => [name, loadJson(`${name}.json`)]));
 }

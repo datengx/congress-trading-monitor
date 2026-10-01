@@ -2,6 +2,7 @@ import React from "react";
 import CabinetSpotlight from "../components/CabinetSpotlight";
 import LatestActivity from "../components/LatestActivity";
 import ReturnsLeaderboard from "../components/ReturnsLeaderboard";
+import WeeklyFlows from "../components/WeeklyFlows";
 import TickerBoard from "../TickerBoard";
 import { ChangeTag, KeyFigures } from "../kit";
 import { fmtInt, fmtUSD, Link, SectionHeader } from "../ui";
@@ -88,7 +89,7 @@ function Headlines({ trades, asOf, stats }) {
 }
 
 export default function OverviewPage({ data, asOf }) {
-  const { stats, filers, tickers, trades = [], returns = [], prices = {} } = data;
+  const { stats, filers, tickers, trades = [], returns = [], prices = {}, flows = [] } = data;
 
   const headline = "Congress Trading Monitor";
   // The page title carries the search terms; the intro keeps them on the page under the brand-name heading.
@@ -107,6 +108,13 @@ export default function OverviewPage({ data, asOf }) {
             <Headlines trades={trades} asOf={asOf} stats={stats} />
           </div>
         </section>
+
+        {flows.length > 0 && (
+          <section className="pb-8" id="weekly-flows">
+            <SectionHeader title="Buying and selling by week" subtitle="Stock purchases minus sales by members of Congress each week, alongside the S&P 500." />
+            <WeeklyFlows flows={flows} />
+          </section>
+        )}
 
         <section className="pb-8">
           <CabinetSpotlight filers={filers} trades={trades} />
