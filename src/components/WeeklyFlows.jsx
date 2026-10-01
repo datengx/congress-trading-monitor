@@ -120,9 +120,6 @@ export default function WeeklyFlows({ flows }) {
           </div>
         )}
       </div>
-      <p className="govuk-body-s" style={{ color: MUTED, marginTop: 8 }}>
-        Counted by trade, not dollars: filings give only value ranges. The two scales are independent. Members have 45 days to disclose, so the latest weeks will still change. The President's filings are not included.
-      </p>
     </div>
   );
 }
