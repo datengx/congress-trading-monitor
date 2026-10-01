@@ -7,6 +7,7 @@ import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
 
 import { companyName } from "./companyName.mjs";
+import { INSIGHTS } from "../src/insights.js";
 
 const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
 const DIST = path.join(ROOT, "dist", "congress"); // vite outDir (site lives under /congress/)
@@ -114,10 +115,10 @@ function buildRoutes() {
     },
     {
       path: "/insights",
-      title: "Congress Stock Trading Trends - Weekly Buying and Selling | Congress Trading Monitor",
-      description:
-        "How much members of Congress buy and sell each week, alongside the S&P 500. Counted from every House and Senate periodic transaction report, updated daily.",
+      title: "Insights - Trends in Congressional Stock Trading | Congress Trading Monitor",
+      description: "Charts of trends across every stock trade disclosed by members of Congress, each on its own page.",
     },
+    ...INSIGHTS.map((i) => ({ path: `/insights/${i.slug}`, title: `${i.seoTitle} | Congress Trading Monitor`, description: i.seoDescription })),
     {
       path: "/about",
       title: "About the Data - STOCK Act Disclosures Explained | Congress Trading Monitor",
@@ -247,7 +248,7 @@ async function buildRenderer() {
 const template = fs.readFileSync(path.join(DIST, "index.html"), "utf8");
 const { renderPage } = await buildRenderer();
 const asOf = Date.now();
-const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], insights: ["stats", "flows"], about: ["stats"] };
+const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], insights: ["stats"], insight: ["stats", "flows"], about: ["stats"] };
 function routeDatasets(name) {
   return Object.fromEntries(ROUTE_DATASETS[name].map((name) => [name, loadJson(`${name}.json`)]));
 }
@@ -283,6 +284,10 @@ for (const r of routes) {
       initialPage = { route, tickerData, filers, asOf };
       seed = { route, tickerData: fileRef(rel), filers, asOf };
     }
+  } else if (r.path.startsWith("/insights/")) {
+    const route = { name: "insight", slug: r.path.slice("/insights/".length), query: {} };
+    initialPage = { route, datasets: routeDatasets("insight"), asOf };
+    seed = { route, datasets: routeDatasetRefs("insight"), asOf };
   } else {
     const name = r.path.slice(1);
     const route = { name, query: {} };

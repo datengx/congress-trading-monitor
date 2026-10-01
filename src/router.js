@@ -29,6 +29,7 @@ export function parseRoute(pathname = window.location.pathname, search = window.
   if (segments[0] === "filers") return { name: "filers", query };
   if (segments[0] === "tickers") return { name: "tickers", query };
   if (segments[0] === "trades") return { name: "trades", query };
+  if (segments[0] === "insights" && segments[1]) return { name: "insight", slug: decodeURIComponent(segments[1]), query };
   if (segments[0] === "insights") return { name: "insights", query };
   if (segments[0] === "about") return { name: "about", query };
   return { name: "overview", query };

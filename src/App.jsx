@@ -5,6 +5,8 @@ import { SiteFooter } from "./kit";
 import Masthead from "./Masthead";
 import AboutPage from "./pages/AboutPage";
 import InsightsPage from "./pages/InsightsPage";
+import InsightPage from "./pages/InsightPage";
+import { insightBySlug } from "./insights";
 import FilerPage from "./pages/FilerPage";
 import FilersPage from "./pages/FilersPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -95,7 +97,9 @@ function routeTitle(route, data) {
     case "trades":
       return `Latest Congressional Stock Trades | ${SUFFIX}`;
     case "insights":
-      return `Congress Stock Trading Trends | ${SUFFIX}`;
+      return `Insights | ${SUFFIX}`;
+    case "insight":
+      return `${insightBySlug(route.slug)?.seoTitle ?? "Insight not found"} | ${SUFFIX}`;
     case "about":
       return `About the Data | ${SUFFIX}`;
     default:
@@ -216,6 +220,7 @@ export default function App({ initialPage = null }) {
       {route.name === "tickers" && <TickersPage data={data} />}
       {route.name === "trades" && <TradesPage data={data} />}
       {route.name === "insights" && <InsightsPage data={data} />}
+      {route.name === "insight" && <InsightPage slug={route.slug} data={data} />}
       {route.name === "about" && <AboutPage data={data} />}
       {route.name === "filer" && (
         <FilerPage

@@ -142,3 +142,9 @@ body:has(.seo-shell) #root footer { display: none; }
 .ticker-skeleton-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 24px; padding: 14px 0; border-bottom: 1px solid #b1b4b6; }
 .ticker-skeleton-row .ticker-skeleton-bar { max-width: 180px; }
 .ticker-skeleton-chart { height: 274px; background: #f3f2f1; margin: 32px 0; }
+/* Insights: topic cards on the index, and the chart card on an insight page (UKHSA dashboard pattern). */
+.insight-cards{list-style:none;margin:24px 0 0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:20px}
+.insight-card{background:#f3f2f1;padding:20px 20px 4px;border-top:4px solid #1d70b8}
+.insight-chart-card{background:#f3f2f1;padding:20px}
+.insight-chart-card .govuk-tabs__panel{background:#fff}
+.insight-date{color:#505a5f;margin-bottom:16px}
