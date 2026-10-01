@@ -31,7 +31,8 @@ function WeeklyTrading({ flows }) {
   return (
     <>
       <section className="insight-chart-card" aria-labelledby="chart-title">
-        <h2 className="govuk-heading-m" id="chart-title">Weekly buying and selling, and the S&amp;P 500</h2>
+        {/* The card title is the page heading: one heading per page, as on a UKHSA chart page. */}
+        <h1 className="govuk-heading-m" id="chart-title">Weekly buying and selling, and the S&amp;P 500</h1>
         <p className="govuk-body-s insight-date">Up to and including the week starting {day(last.week)}</p>
         <GovTabs tabs={[
           { label: "Chart", content: <WeeklyFlows flows={flows} /> },
@@ -66,10 +67,6 @@ export default function InsightPage({ slug, data }) {
         </ol>
       </nav>
       <main className="govuk-main-wrapper" id="main-content">
-        <div className="max-w-3xl">
-          <h1 className="dk-h1">{insight.title}</h1>
-          <p className="govuk-body-l">{insight.summary}</p>
-        </div>
         {insight.slug === "weekly-trading" && flows.length > 0 && <WeeklyTrading flows={flows} />}
       </main>
     </div>
