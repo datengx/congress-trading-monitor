@@ -113,6 +113,12 @@ function buildRoutes() {
         "Every disclosed trade as it's filed: filer, ticker, amount, dates, filing lag, and performance vs SPY. Searchable and filterable.",
     },
     {
+      path: "/insights",
+      title: "Congress Stock Trading Trends - Weekly Buying and Selling | Congress Trading Monitor",
+      description:
+        "How much members of Congress buy and sell each week, alongside the S&P 500. Counted from every House and Senate periodic transaction report, updated daily.",
+    },
+    {
       path: "/about",
       title: "About the Data - STOCK Act Disclosures Explained | Congress Trading Monitor",
       description:
@@ -241,7 +247,7 @@ async function buildRenderer() {
 const template = fs.readFileSync(path.join(DIST, "index.html"), "utf8");
 const { renderPage } = await buildRenderer();
 const asOf = Date.now();
-const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices", "flows"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], about: ["stats"] };
+const ROUTE_DATASETS = { overview: ["stats", "filers", "tickers", "trades", "returns", "prices"], filers: ["stats", "filers", "returns"], tickers: ["stats", "tickers", "prices"], trades: ["stats", "trades", "filers"], insights: ["stats", "flows"], about: ["stats"] };
 function routeDatasets(name) {
   return Object.fromEntries(ROUTE_DATASETS[name].map((name) => [name, loadJson(`${name}.json`)]));
 }

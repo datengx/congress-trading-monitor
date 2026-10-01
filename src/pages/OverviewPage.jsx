@@ -2,7 +2,6 @@ import React from "react";
 import CabinetSpotlight from "../components/CabinetSpotlight";
 import LatestActivity from "../components/LatestActivity";
 import ReturnsLeaderboard from "../components/ReturnsLeaderboard";
-import WeeklyFlows from "../components/WeeklyFlows";
 import TickerBoard from "../TickerBoard";
 import { ChangeTag, KeyFigures } from "../kit";
 import { fmtInt, fmtUSD, Link, SectionHeader } from "../ui";
@@ -65,7 +64,7 @@ function Headlines({ trades, asOf, stats }) {
     <KeyFigures
       context={`${fmtInt(recent.length)} stock trades by ${fmtInt(members)} members of Congress disclosed in the past 30 days, up to ${fmtDay(end)}.`}
       items={[
-        { label: "Buying or selling", value: direction, title: "Estimated from the midpoints of the disclosed amount ranges", note: `${fmtUSD(bought)} bought, ${fmtUSD(sold)} sold` },
+        { label: "Buying or selling", value: <Link to="/insights#weekly-flows">{direction}</Link>, title: "Estimated from the midpoints of the disclosed amount ranges", note: `${fmtUSD(bought)} bought, ${fmtUSD(sold)} sold` },
         top && top.buyers.size > 0 && {
           label: "Most bought stock",
           value: <Link to={`/ticker/${topTicker}`}>{topTicker}</Link>,
@@ -89,7 +88,7 @@ function Headlines({ trades, asOf, stats }) {
 }
 
 export default function OverviewPage({ data, asOf }) {
-  const { stats, filers, tickers, trades = [], returns = [], prices = {}, flows = [] } = data;
+  const { stats, filers, tickers, trades = [], returns = [], prices = {} } = data;
 
   const headline = "Congress Trading Monitor";
   // The page title carries the search terms; the intro keeps them on the page under the brand-name heading.
@@ -108,13 +107,6 @@ export default function OverviewPage({ data, asOf }) {
             <Headlines trades={trades} asOf={asOf} stats={stats} />
           </div>
         </section>
-
-        {flows.length > 0 && (
-          <section className="pb-8" id="weekly-flows">
-            <SectionHeader title="Stock trading by members of Congress" subtitle="Weekly purchases minus sales, alongside the S&P 500." />
-            <WeeklyFlows flows={flows} />
-          </section>
-        )}
 
         <section className="pb-8">
           <CabinetSpotlight filers={filers} trades={trades} />

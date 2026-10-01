@@ -4,6 +4,7 @@ import CommandPalette from "./components/CommandPalette";
 import { SiteFooter } from "./kit";
 import Masthead from "./Masthead";
 import AboutPage from "./pages/AboutPage";
+import InsightsPage from "./pages/InsightsPage";
 import FilerPage from "./pages/FilerPage";
 import FilersPage from "./pages/FilersPage";
 import OverviewPage from "./pages/OverviewPage";
@@ -93,6 +94,8 @@ function routeTitle(route, data) {
       return `Most-Traded Stocks by Congress | ${SUFFIX}`;
     case "trades":
       return `Latest Congressional Stock Trades | ${SUFFIX}`;
+    case "insights":
+      return `Congress Stock Trading Trends | ${SUFFIX}`;
     case "about":
       return `About the Data | ${SUFFIX}`;
     default:
@@ -212,6 +215,7 @@ export default function App({ initialPage = null }) {
       {route.name === "filers" && <FilersPage data={data} />}
       {route.name === "tickers" && <TickersPage data={data} />}
       {route.name === "trades" && <TradesPage data={data} />}
+      {route.name === "insights" && <InsightsPage data={data} />}
       {route.name === "about" && <AboutPage data={data} />}
       {route.name === "filer" && (
         <FilerPage
