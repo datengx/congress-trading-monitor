@@ -1,15 +1,31 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 
-// Weekly stock purchases minus sales by members of Congress, counted by trade, with the S&P 500 above on the same
-// time axis. Two bands instead of a dual axis: the index line on top, the bars below, each with its own heading.
-// Hovering a week shows its purchases, sales, members and the SPY close. Weeks in the last 45 days are still being
-// disclosed, which the note under the chart says.
-const BUY = "#0f7b3f", SELL = "#be2929", INK = "#0b0c0c", MUTED = "#6b7276", GRID = "rgba(0,0,0,0.06)", AXIS = "rgba(0,0,0,0.35)";
+// Weekly stock purchases minus sales by members of Congress (counted by trade) as bars, with the S&P 500 as a line on
+// its own right-hand scale. The right scale is chosen so its ticks fall on the bar gridlines, giving one set of
+// gridlines; each scale has its title and key directly above its own tick column; the line is cased in white so it
+// holds contrast over the bars. Hovering a week shows its purchases, sales, members and the SPY close.
+const BUY = "#00703c", SELL = "#d4351c", INK = "#0b0c0c", MUTED = "#505a5f", GRID = "rgba(0,0,0,0.07)", AXIS = "rgba(0,0,0,0.4)";
 const RANGES = [["2026", "2026"], ["all", "Since 2025"]];
 const MARKERS = [{ date: "2026-02-28", label: "Iran war begins" }];
+const NICE = [5, 10, 20, 25, 50, 100, 200];
 const t = (s) => Date.parse(`${s}T00:00:00Z`);
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const dayLabel = (s) => { const d = new Date(t(s)); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`; };
+const signed = (v) => (v > 0 ? `+${v}` : v < 0 ? `−${Math.abs(v)}` : "0");
+
+// Bar scale from the data, then an S&P scale whose ticks sit on the same gridlines.
+function scales(rows, spy) {
+  const nMax = Math.max(20, ...rows.map((r) => r.net)), nMin = Math.min(-20, ...rows.map((r) => r.net));
+  const step = NICE.find((n) => (nMax - nMin) / n <= 5) ?? 200;
+  const nLo = Math.floor(nMin / step) * step, nHi = Math.ceil(nMax / step) * step;
+  const sLo = Math.min(...spy.map((r) => r.spy)), sHi = Math.max(...spy.map((r) => r.spy));
+  for (const sStep of NICE) {
+    const k = sStep / step, aMin = sHi - k * nHi, aMax = sLo - k * nLo;
+    const a = Math.ceil(aMin / sStep) * sStep;
+    if (a <= aMax) return { step, nLo, nHi, toS: (n) => a + k * n, fromS: (v) => (v - a) / k };
+  }
+  return { step, nLo, nHi, toS: (n) => n, fromS: (v) => v };
+}
 
 export default function WeeklyFlows({ flows }) {
   const ref = useRef(null);
@@ -23,36 +39,31 @@ export default function WeeklyFlows({ flows }) {
     ro.observe(ref.current);
     return () => ro.disconnect();
   }, []);
-  const rows = useMemo(() => flows.filter((r) => (range === "2026" ? r.week >= "2025-12-29" : true)).map((r) => ({ ...r, net: r.buys - r.sells })), [flows, range]);
+  const rows = useMemo(() => flows.filter((r) => (range === "2026" ? r.week >= "2026-01-01" : true)).map((r) => ({ ...r, net: r.buys - r.sells })), [flows, range]);
   if (!rows.length) return null;
+  const spy = rows.filter((r) => r.spy != null);
   const narrow = width < 640;
-  const W = Math.max(320, width), P = { l: narrow ? 36 : 44, r: narrow ? 36 : 48 };
-  const lineTop = 34, lineBot = narrow ? 150 : 210, barTop = lineBot + 64, barBot = barTop + (narrow ? 130 : 180), H = barBot + 30;
+  const W = Math.max(320, width), P = { l: narrow ? 38 : 48, r: narrow ? 38 : 48, t: 58, b: 34 };
+  const H = narrow ? 340 : 440;
+  const { step, nLo, nHi, toS, fromS } = scales(rows, spy);
   const x0 = t(rows[0].week), x1 = t(rows.at(-1).week) + 7 * 86400000;
   const x = (s) => P.l + ((t(s) - x0) / (x1 - x0)) * (W - P.l - P.r);
-  const spy = rows.filter((r) => r.spy != null);
-  const sLo = Math.min(...spy.map((r) => r.spy)), sHi = Math.max(...spy.map((r) => r.spy));
-  const yS = (v) => lineBot - ((v - sLo) / (sHi - sLo || 1)) * (lineBot - lineTop);
-  const nMax = Math.max(20, ...rows.map((r) => r.net)), nMin = Math.min(-20, ...rows.map((r) => r.net));
-  const step = nMax - nMin > 150 ? 50 : 25;
-  const nHi = Math.ceil(nMax / step) * step, nLo = Math.floor(nMin / step) * step;
-  const yN = (v) => barBot - ((v - nLo) / (nHi - nLo)) * (barBot - barTop);
-  const weekW = (W - P.l - P.r) / rows.length, bw = Math.max(2, weekW * 0.62);
+  const yN = (v) => H - P.b - ((v - nLo) / (nHi - nLo)) * (H - P.t - P.b);
+  const yS = (v) => yN(fromS(v));
+  const weekW = (W - P.l - P.r) / rows.length, bw = Math.max(2, weekW * 0.6);
   const cx = (r) => x(r.week) + weekW / 2;
   const ticks = []; for (let v = nLo; v <= nHi; v += step) ticks.push(v);
   const months = [];
   for (let d = new Date(x0); d.getTime() <= x1; d.setUTCMonth(d.getUTCMonth() + 1)) { d.setUTCDate(1); if (d.getTime() >= x0) months.push(new Date(d)); }
   const monthStep = range === "all" ? (narrow ? 6 : 3) : narrow ? 2 : 1;
-  const low = spy.reduce((a, r) => (r.spy < a.spy ? r : a));
-  const last = spy.at(-1);
   const path = spy.map((r, i) => `${i ? "L" : "M"}${cx(r).toFixed(1)},${yS(r.spy).toFixed(1)}`).join("");
   const onMove = (e) => {
     const box = e.currentTarget.getBoundingClientRect();
     const px = ((e.clientX - box.left) / box.width) * W;
-    const i = Math.max(0, Math.min(rows.length - 1, Math.floor((px - P.l) / weekW)));
-    setHover(rows[i]);
+    setHover(rows[Math.max(0, Math.min(rows.length - 1, Math.floor((px - P.l) / weekW)))]);
   };
-  const tip = hover && { left: Math.min(Math.max(cx(hover), 90), W - 90) };
+  const tipLeft = hover ? Math.min(Math.max(cx(hover), 100), W - 100) : 0;
+  const tick = { fontSize: narrow ? 12 : 14, fill: MUTED, style: { fontVariantNumeric: "tabular-nums" } };
   return (
     <div>
       <div className="govuk-form-group" style={{ marginBottom: 12 }}>
@@ -64,52 +75,53 @@ export default function WeeklyFlows({ flows }) {
       <div ref={ref} style={{ position: "relative" }}>
         {width > 0 && (
           <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} onMouseMove={onMove} onMouseLeave={() => setHover(null)} role="img"
-            aria-label={`Weekly net stock purchases by members of Congress and the S&P 500. The S&P 500 low was ${Math.round(low.spy)} in the week of ${dayLabel(low.week)}.`}>
-            <text x={0} y={lineTop - 18} fontSize="15" fontWeight="700" fill={INK}>S&amp;P 500</text>
-            <text x={0} y={barTop - 18} fontSize="15" fontWeight="700" fill={INK}>Net stock purchases by members of Congress, per week</text>
-            {MARKERS.filter((m) => t(m.date) >= x0 && t(m.date) <= x1).map((m) => (
-              <g key={m.date}>
-                <line x1={x(m.date)} x2={x(m.date)} y1={lineTop - 4} y2={barTop - 40} stroke={MUTED} strokeDasharray="3 4" />
-                <line x1={x(m.date)} x2={x(m.date)} y1={barTop - 6} y2={barBot} stroke={MUTED} strokeDasharray="3 4" />
-                <text x={x(m.date) + 6} y={lineTop + 8} fontSize="13" fill={MUTED}>{m.label}</text>
-              </g>
-            ))}
+            aria-label="Weekly stock purchases minus sales by members of Congress, as bars, with the S&P 500 as a line on its own scale.">
+            <text x={0} y={18} fontSize="15" fontWeight="700" fill={INK}>{narrow ? "Net purchases" : "Net stock purchases a week"}</text>
+            <rect x={0} y={30} width={12} height={12} fill={BUY} /><text x={18} y={41} fontSize="13" fill={MUTED}>Buying</text>
+            <rect x={78} y={30} width={12} height={12} fill={SELL} /><text x={96} y={41} fontSize="13" fill={MUTED}>Selling</text>
+            <text x={W} y={18} textAnchor="end" fontSize="15" fontWeight="700" fill={INK}>S&amp;P 500</text>
+            <line x1={W - 96} x2={W - 74} y1={36} y2={36} stroke={INK} strokeWidth="2.5" /><text x={W} y={41} textAnchor="end" fontSize="13" fill={MUTED}>Index level</text>
             {ticks.map((v) => (
               <g key={v}>
                 <line x1={P.l} x2={W - P.r} y1={yN(v)} y2={yN(v)} stroke={v ? GRID : AXIS} />
-                <text x={P.l - 6} y={yN(v) + 4} textAnchor="end" fontSize="12" fill={MUTED}>{v > 0 ? `+${v}` : v}</text>
+                <text x={P.l - 8} y={yN(v) + 4} textAnchor="end" {...tick}>{signed(v)}</text>
+                <text x={W - P.r + 8} y={yN(v) + 4} {...tick}>{Math.round(toS(v))}</text>
+              </g>
+            ))}
+            {MARKERS.filter((m) => t(m.date) >= x0 && t(m.date) <= x1).map((m) => (
+              <g key={m.date}>
+                <line x1={x(m.date)} x2={x(m.date)} y1={P.t} y2={H - P.b} stroke={MUTED} strokeDasharray="3 4" />
+                <text x={x(m.date) + 6} y={P.t + 12} fontSize="13" fill={MUTED}>{m.label}</text>
               </g>
             ))}
             {rows.map((r) => {
               const y0 = yN(0), y1 = yN(r.net);
-              return <rect key={r.week} x={cx(r) - bw / 2} y={Math.min(y0, y1)} width={bw} height={Math.max(1, Math.abs(y1 - y0))} fill={r.net >= 0 ? BUY : SELL} opacity={hover && hover.week !== r.week ? 0.45 : 1} />;
+              return <rect key={r.week} x={cx(r) - bw / 2} y={Math.min(y0, y1)} width={bw} height={Math.max(1, Math.abs(y1 - y0))} fill={r.net >= 0 ? BUY : SELL} opacity={hover && hover.week !== r.week ? 0.4 : 1} />;
             })}
-            <path d={path} fill="none" stroke={INK} strokeWidth="2" strokeLinejoin="round" />
-            <circle cx={cx(low)} cy={yS(low.spy)} r="3.5" fill={INK} />
-            <text x={cx(low) + 8} y={yS(low.spy) + 16} fontSize="13" fill={INK}>Low {Math.round(low.spy)}</text>
-            <text x={cx(last) + 6} y={yS(last.spy) + 4} fontSize="13" fontWeight="700" fill={INK}>{Math.round(last.spy)}</text>
+            <path d={path} fill="none" stroke="#fff" strokeWidth="6" strokeLinejoin="round" strokeLinecap="round" />
+            <path d={path} fill="none" stroke={INK} strokeWidth="2.5" strokeLinejoin="round" />
             {months.filter((d, i) => i % monthStep === 0).map((d) => {
               const iso = d.toISOString().slice(0, 10);
               return (
                 <g key={iso}>
-                  <line x1={x(iso)} x2={x(iso)} y1={barBot} y2={barBot + 5} stroke={AXIS} />
-                  <text x={x(iso)} y={barBot + 20} textAnchor="middle" fontSize="12" fill={MUTED}>{MONTHS[d.getUTCMonth()]}{d.getUTCMonth() === 0 ? ` ${d.getUTCFullYear()}` : ""}</text>
+                  <line x1={x(iso)} x2={x(iso)} y1={H - P.b} y2={H - P.b + 5} stroke={AXIS} />
+                  <text x={x(iso)} y={H - P.b + 20} textAnchor="middle" fontSize={narrow ? 12 : 13} fill={MUTED}>{MONTHS[d.getUTCMonth()]}{range === "all" && d.getUTCMonth() === 0 ? ` ${d.getUTCFullYear()}` : ""}</text>
                 </g>
               );
             })}
-            {hover && <line x1={cx(hover)} x2={cx(hover)} y1={lineTop} y2={barBot} stroke={INK} strokeOpacity="0.25" />}
+            {hover && <line x1={cx(hover)} x2={cx(hover)} y1={P.t} y2={H - P.b} stroke={INK} strokeOpacity="0.25" />}
           </svg>
         )}
         {hover && (
-          <div style={{ position: "absolute", top: 0, left: tip.left, transform: "translateX(-50%)", background: "#fff", border: "1px solid #b1b4b6", padding: "6px 10px", fontSize: 14, lineHeight: "20px", pointerEvents: "none", whiteSpace: "nowrap" }}>
+          <div style={{ position: "absolute", top: P.t, left: tipLeft, transform: "translateX(-50%)", background: "#fff", border: "1px solid #b1b4b6", padding: "6px 10px", fontSize: 14, lineHeight: "20px", pointerEvents: "none", whiteSpace: "nowrap" }}>
             <strong>Week of {dayLabel(hover.week)}</strong><br />
             <span style={{ color: BUY }}>{hover.buys} purchases</span>, <span style={{ color: SELL }}>{hover.sells} sales</span><br />
-            Net {hover.net > 0 ? "+" : ""}{hover.net}, {hover.members} members{hover.spy != null ? `, S&P ${Math.round(hover.spy)}` : ""}
+            Net {signed(hover.net)}, {hover.members} members{hover.spy != null ? `, S&P ${Math.round(hover.spy)}` : ""}
           </div>
         )}
       </div>
       <p className="govuk-body-s" style={{ color: MUTED, marginTop: 8 }}>
-        Counted by trade, not dollars: filings give only value ranges. Members have 45 days to disclose, so the latest weeks will still change. The President's filings are not included.
+        Counted by trade, not dollars: filings give only value ranges. The two scales are independent. Members have 45 days to disclose, so the latest weeks will still change. The President's filings are not included.
       </p>
     </div>
   );

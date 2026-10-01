@@ -111,7 +111,7 @@ export default function OverviewPage({ data, asOf }) {
 
         {flows.length > 0 && (
           <section className="pb-8" id="weekly-flows">
-            <SectionHeader title="Buying and selling by week" subtitle="Stock purchases minus sales by members of Congress each week, alongside the S&P 500." />
+            <SectionHeader title="Stock trading by members of Congress" subtitle="Weekly purchases minus sales, alongside the S&P 500." />
             <WeeklyFlows flows={flows} />
           </section>
         )}
