@@ -49,7 +49,6 @@ function WeeklyTrading({ flows }) {
           <li>From mid-May on, the weeks are mostly net selling.</li>
           <li>Members have 45 days to disclose, so August and September will still change as filings come in.</li>
         </ul>
-        <p className="govuk-body">Trades are counted, not dollars, because filings give only value ranges. The President's filings, which go to the Office of Government Ethics, are not included.</p>
       </section>
     </>
   );
