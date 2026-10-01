@@ -148,3 +148,18 @@ body:has(.seo-shell) #root footer { display: none; }
 .insight-chart-card{background:#f3f2f1;padding:20px}
 .insight-chart-card .govuk-tabs__panel{background:#fff}
 .insight-date{color:#505a5f;margin-bottom:16px}
+/* GOV.UK shows tabs as a "Contents" link list below tablet width. Here the panels are React state, so phones get
+   the same tab row as desktop: compact, horizontally scrollable if the labels do not fit. */
+@media (max-width: 40.0525em) {
+  .govuk-frontend-supported .govuk-tabs__title { display: none; }
+  .govuk-frontend-supported .govuk-tabs__list { display: flex; margin: 0; padding: 0; border-bottom: 1px solid #b1b4b6; overflow-x: auto; }
+  .govuk-frontend-supported .govuk-tabs__list-item { margin: 0 4px -1px 0; padding: 8px 12px; background: #f3f2f1; list-style: none; white-space: nowrap; border: 1px solid transparent; border-bottom: 0; }
+  .govuk-frontend-supported .govuk-tabs__list-item::before { content: none; }
+  .govuk-frontend-supported .govuk-tabs__list-item--selected { background: #fff; border-color: #b1b4b6; }
+  .govuk-frontend-supported .govuk-tabs__list-item--selected .govuk-tabs__tab { text-decoration: none; color: #0b0c0c; }
+  .govuk-frontend-supported .govuk-tabs__tab { font-size: 16px; }
+  .govuk-frontend-supported .govuk-tabs__panel { margin: 0; padding: 16px 12px; border: 1px solid #b1b4b6; border-top: 0; background: #fff; }
+  .govuk-frontend-supported .govuk-tabs__panel--hidden { display: none; }
+  .insight-chart-card { padding: 16px 12px; margin: 0 -15px; }
+}
+@media (max-width: 40.0525em) { .insight-about .govuk-list { font-size: 16px; line-height: 1.4; } }

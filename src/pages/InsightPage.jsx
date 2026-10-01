@@ -40,7 +40,7 @@ function WeeklyTrading({ flows }) {
           { label: "Download", content: <><p className="govuk-body">Every week since January 2025 as a CSV: purchases, sales, net, members trading and the SPY close.</p><button type="button" className="govuk-button govuk-button--secondary" onClick={() => download(flows)}>Download CSV</button></> },
         ]} />
       </section>
-      <section className="mt-8 max-w-3xl">
+      <section className="mt-8 max-w-3xl insight-about">
         <h2 className="govuk-heading-m">About this data</h2>
         <ul className="govuk-list govuk-list--bullet">
           <li>Each bar is one week, starting Monday: the number of stock purchases minus the number of sales disclosed by members of Congress in their periodic transaction reports.</li>
