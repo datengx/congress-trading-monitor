@@ -43,12 +43,13 @@ function WeeklyTrading({ flows }) {
       <section className="mt-8 max-w-3xl insight-about">
         <h2 className="govuk-heading-m">About this data</h2>
         <ul className="govuk-list govuk-list--bullet">
-          <li>Each bar is one week, starting Monday: the number of stock purchases minus the number of sales disclosed by members of Congress in their periodic transaction reports.</li>
-          <li>Trades are counted, not dollars, because filings give only value ranges.</li>
-          <li>The S&amp;P 500 line is the SPY closing price on its own scale. The two scales are independent.</li>
-          <li>Members have 45 days to disclose a trade, so the latest weeks will still change as filings arrive.</li>
-          <li>The President's filings, which go to the Office of Government Ethics, are not included.</li>
+          <li>Members were net buyers in every week from early March to early May, while the S&amp;P 500 fell to its low on March 30 and recovered.</li>
+          <li>From March 2 to May 3, they made 411 more purchases than sales. 36 members were net buyers and 26 net sellers.</li>
+          <li>The buying was concentrated: Michael McCaul (R-TX) and Rohit Khanna (D-CA) account for most of it. Both have large, actively managed portfolios.</li>
+          <li>From mid-May on, the weeks are mostly net selling.</li>
+          <li>Members have 45 days to disclose, so August and September will still change as filings come in.</li>
         </ul>
+        <p className="govuk-body">Trades are counted, not dollars, because filings give only value ranges. The President's filings, which go to the Office of Government Ethics, are not included.</p>
       </section>
     </>
   );
