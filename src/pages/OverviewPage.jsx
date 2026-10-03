@@ -87,6 +87,86 @@ function Headlines({ trades, asOf, stats }) {
   );
 }
 
+// Ranked bars for the stocks the most members of Congress bought, and the ones the most sold, over a recent window
+// counted by filing date like the headlines above, so the top bought stock here is the headline's "Most bought stock".
+// Bars measure distinct members, ties broken by number of trades. Both lists share one scale so their lengths compare.
+const RANK_PERIODS = [[30, "Past 30 days"], [90, "Past 90 days"]];
+const RANK_SIZE = 10;
+const BUY = "#00703c", SELL = "#d4351c";
+
+function rankBy(recent, test) {
+  const byTicker = new Map();
+  for (const t of recent) {
+    if (!isStockTicker(t.ticker) || !test(t)) continue;
+    const e = byTicker.get(t.ticker) ?? { ticker: t.ticker, trades: 0, members: new Set() };
+    e.trades++;
+    e.members.add(t.filer_id);
+    byTicker.set(t.ticker, e);
+  }
+  return [...byTicker.values()]
+    .map((e) => ({ ticker: e.ticker, trades: e.trades, members: e.members.size }))
+    .sort((a, b) => b.members - a.members || b.trades - a.trades || a.ticker.localeCompare(b.ticker))
+    .slice(0, RANK_SIZE);
+}
+
+function RankedBars({ title, rows, max, color, verb }) {
+  return (
+    <div>
+      <h3 className="govuk-heading-s" style={{ marginBottom: 8 }}>{title}</h3>
+      {rows.length === 0 ? (
+        <p className="dk-hint">No {verb === "bought" ? "purchases" : "sales"} disclosed in this period.</p>
+      ) : (
+        <ol style={{ listStyle: "none", margin: 0, padding: 0 }}>
+          {rows.map((r, i) => {
+            const label = `${fmtInt(r.members)} ${r.members === 1 ? "member" : "members"} · ${fmtInt(r.trades)} ${r.trades === 1 ? "trade" : "trades"}`;
+            return (
+              <li key={r.ticker} className="hover:bg-[#f3f2f1]" style={{ display: "grid", gridTemplateColumns: "24px 64px minmax(0, 1fr) 9.5rem", alignItems: "center", columnGap: 8, padding: "4px 0" }}
+                title={`${r.ticker}: ${verb} by ${label}`}>
+                <span className="dk-hint" style={{ textAlign: "right", fontVariantNumeric: "tabular-nums" }}>{i + 1}</span>
+                <Link to={`/ticker/${r.ticker}`} style={{ fontWeight: 700 }}>{r.ticker}</Link>
+                <span style={{ display: "block", width: `${Math.max(2, (r.members / max) * 100)}%`, height: 14, background: color, borderRadius: "0 4px 4px 0" }} />
+                <span className="dk-hint" style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{label}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function TopTradedStocks({ trades, asOf }) {
+  const [days, setDays] = React.useState(RANK_PERIODS[0][0]);
+  const end = new Date(asOf ?? Date.now()).toISOString().slice(0, 10);
+  const start = dayOffset(end, -days);
+  const recent = trades.filter((t) => t.branch !== "executive" && t.filing_date > start && t.filing_date <= end);
+  if (!recent.length) return null;
+  const bought = rankBy(recent, isBuy);
+  const sold = rankBy(recent, isSell);
+  const max = Math.max(1, ...bought.map((r) => r.members), ...sold.map((r) => r.members));
+  // The trades file holds recent filings only, so a long window can reach back past its first day; say what is covered.
+  const first = recent.reduce((min, t) => (t.filing_date < min ? t.filing_date : min), end);
+  const fmtDay = (iso) => new Date(`${iso}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+
+  return (
+    <div>
+      <div className="govuk-form-group" style={{ marginBottom: 12 }}>
+        <label className="govuk-label" htmlFor="ranked-period">Period</label>
+        <select className="govuk-select" id="ranked-period" value={days} onChange={(e) => setDays(Number(e.target.value))}>
+          {RANK_PERIODS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+        </select>
+      </div>
+      <p className="dk-hint" style={{ marginBottom: 12 }}>
+        Stock trades by members of Congress disclosed from {fmtDay(first)} to {fmtDay(end)}. Bars show how many members bought or sold each stock.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <RankedBars title="Most bought" rows={bought} max={max} color={BUY} verb="bought" />
+        <RankedBars title="Most sold" rows={sold} max={max} color={SELL} verb="sold" />
+      </div>
+    </div>
+  );
+}
+
 export default function OverviewPage({ data, asOf }) {
   const { stats, filers, tickers, trades = [], returns = [], prices = {} } = data;
 
@@ -106,6 +186,11 @@ export default function OverviewPage({ data, asOf }) {
           <div className="mt-8">
             <Headlines trades={trades} asOf={asOf} stats={stats} />
           </div>
+        </section>
+
+        <section className="pb-8">
+          <SectionHeader title="Most bought and sold stocks" subtitle="Ranked by the number of members of Congress trading each stock." />
+          <TopTradedStocks trades={trades} asOf={asOf} />
         </section>
 
         <section className="pb-8">
